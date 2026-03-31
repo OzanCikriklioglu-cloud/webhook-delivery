@@ -4,8 +4,10 @@ import org.example.webhookdelivery.domain.User;
 import org.example.webhookdelivery.dto.request.CreateEndpointRequest;
 import org.example.webhookdelivery.dto.request.UpdateEndpointRequest;
 import org.example.webhookdelivery.dto.response.EndpointResponse;
+import org.example.webhookdelivery.dto.response.EventResponse;
 import org.example.webhookdelivery.repository.UserRepository;
 import org.example.webhookdelivery.service.endpoint.EndpointService;
+import org.example.webhookdelivery.service.event.EventService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,10 +26,14 @@ public class EndpointController {
 
     private final EndpointService endpointService;
     private final UserRepository userRepository;
+    private final EventService eventService;
 
-    public EndpointController(EndpointService endpointService, UserRepository userRepository) {
+    public EndpointController(EndpointService endpointService,
+                              UserRepository userRepository,
+                              EventService eventService) {
         this.endpointService = endpointService;
         this.userRepository = userRepository;
+        this.eventService = eventService;
     }
 
     /**
@@ -74,6 +80,19 @@ public class EndpointController {
         Long userId = getUserId(userDetails);
         EndpointResponse response = endpointService.getEndpoint(userId, id);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get all events for a specific endpoint.
+     */
+    @GetMapping("/{id}/events")
+    public ResponseEntity<List<EventResponse>> getEndpointEvents(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id) {
+
+        Long userId = getUserId(userDetails);
+        List<EventResponse> events = eventService.getEndpointEvents(userId, id);
+        return ResponseEntity.ok(events);
     }
 
     /**
