@@ -16,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,33 +42,35 @@ public class EventService {
      * Create a new webhook event.
      */
     public EventResponse createEvent(Long userId, CreateEventRequest request) {
-        // Validate endpoint exists and belongs to user
         WebhookEndpoint endpoint = endpointRepository.findByIdAndUserId(request.getEndpointId(), userId)
                 .orElseThrow(() -> new CustomException("Endpoint not found", HttpStatus.NOT_FOUND));
 
-        // Check if endpoint is active
         if (!endpoint.isActive()) {
             throw new CustomException("Endpoint is not active", HttpStatus.BAD_REQUEST);
         }
 
-        // Create event
         WebhookEvent event = new WebhookEvent(endpoint, request.getEventType(), request.getPayload());
 
         if (request.getMaxRetries() != null) {
             event.setMaxRetries(request.getMaxRetries());
         }
 
-        WebhookEvent savedEvent = eventRepository.save(event);
-        return new EventResponse(savedEvent);
+        return new EventResponse(eventRepository.save(event));
     }
 
     /**
      * Get all events for a user.
+     * FIX: N+1 → 2 sabit sorgu (endpointIds + findByEndpointIdIn)
      */
     @Transactional(readOnly = true)
     public List<EventResponse> getUserEvents(Long userId) {
-        return endpointRepository.findByUserId(userId).stream()
-                .flatMap(endpoint -> eventRepository.findByEndpointId(endpoint.getId()).stream())
+        List<Long> endpointIds = endpointRepository.findByUserId(userId).stream()
+                .map(WebhookEndpoint::getId)
+                .collect(Collectors.toList());
+
+        if (endpointIds.isEmpty()) return List.of();
+
+        return eventRepository.findByEndpointIdIn(endpointIds).stream()
                 .map(EventResponse::new)
                 .collect(Collectors.toList());
     }
@@ -79,7 +80,6 @@ public class EventService {
      */
     @Transactional(readOnly = true)
     public List<EventResponse> getEndpointEvents(Long userId, Long endpointId) {
-        // Validate endpoint belongs to user
         endpointRepository.findByIdAndUserId(endpointId, userId)
                 .orElseThrow(() -> new CustomException("Endpoint not found", HttpStatus.NOT_FOUND));
 
@@ -90,13 +90,13 @@ public class EventService {
 
     /**
      * Get a specific event by ID.
+     * FIX: findByIdWithEndpoint → JOIN FETCH, tek sorgu
      */
     @Transactional(readOnly = true)
     public EventResponse getEvent(Long userId, Long eventId) {
-        WebhookEvent event = eventRepository.findById(eventId)
+        WebhookEvent event = eventRepository.findByIdWithEndpoint(eventId)
                 .orElseThrow(() -> new CustomException("Event not found", HttpStatus.NOT_FOUND));
 
-        // Validate event belongs to user's endpoint
         if (!event.getEndpoint().getUserId().equals(userId)) {
             throw new CustomException("Event not found", HttpStatus.NOT_FOUND);
         }
@@ -106,13 +106,13 @@ public class EventService {
 
     /**
      * Get a specific event by event ID (UUID).
+     * FIX: findByEventId artık JOIN FETCH içeriyor, tek sorgu
      */
     @Transactional(readOnly = true)
     public EventResponse getEventByEventId(Long userId, String eventId) {
         WebhookEvent event = eventRepository.findByEventId(eventId)
                 .orElseThrow(() -> new CustomException("Event not found", HttpStatus.NOT_FOUND));
 
-        // Validate event belongs to user
         if (!event.getEndpoint().getUserId().equals(userId)) {
             throw new CustomException("Event not found", HttpStatus.NOT_FOUND);
         }
@@ -122,13 +122,13 @@ public class EventService {
 
     /**
      * Get delivery logs for an event.
+     * FIX: findById → findByIdWithEndpoint, lazy load ortadan kalktı
      */
     @Transactional(readOnly = true)
     public List<DeliveryLogResponse> getEventDeliveryLogs(Long userId, Long eventId) {
-        WebhookEvent event = eventRepository.findById(eventId)
+        WebhookEvent event = eventRepository.findByIdWithEndpoint(eventId)
                 .orElseThrow(() -> new CustomException("Event not found", HttpStatus.NOT_FOUND));
 
-        // Validate event belongs to user
         if (!event.getEndpoint().getUserId().equals(userId)) {
             throw new CustomException("Event not found", HttpStatus.NOT_FOUND);
         }
@@ -140,22 +140,20 @@ public class EventService {
 
     /**
      * Retry a failed event.
+     * FIX: findById → findByIdWithEndpoint, lazy load ortadan kalktı
      */
     public EventResponse retryEvent(Long userId, Long eventId, RetryEventRequest request) {
-        WebhookEvent event = eventRepository.findById(eventId)
+        WebhookEvent event = eventRepository.findByIdWithEndpoint(eventId)
                 .orElseThrow(() -> new CustomException("Event not found", HttpStatus.NOT_FOUND));
 
-        // Validate event belongs to user
         if (!event.getEndpoint().getUserId().equals(userId)) {
             throw new CustomException("Event not found", HttpStatus.NOT_FOUND);
         }
 
-        // Only allow retry for failed events
         if (event.getEventStatus() != EventStatus.FAILED) {
             throw new CustomException("Only failed events can be retried", HttpStatus.BAD_REQUEST);
         }
 
-        // Reset retry count and update status
         event.setRetryCount(0);
         event.setEventStatus(EventStatus.CREATED);
         event.setDeliveryStatus(DeliveryStatus.PENDING);
@@ -167,23 +165,21 @@ public class EventService {
         event.setNextRetryAt(null);
         event.setLastDeliveryAt(null);
 
-        WebhookEvent updatedEvent = eventRepository.save(event);
-        return new EventResponse(updatedEvent);
+        return new EventResponse(eventRepository.save(event));
     }
 
     /**
      * Cancel an event.
+     * FIX: findById → findByIdWithEndpoint, lazy load ortadan kalktı
      */
     public EventResponse cancelEvent(Long userId, Long eventId) {
-        WebhookEvent event = eventRepository.findById(eventId)
+        WebhookEvent event = eventRepository.findByIdWithEndpoint(eventId)
                 .orElseThrow(() -> new CustomException("Event not found", HttpStatus.NOT_FOUND));
 
-        // Validate event belongs to user
         if (!event.getEndpoint().getUserId().equals(userId)) {
             throw new CustomException("Event not found", HttpStatus.NOT_FOUND);
         }
 
-        // Only allow cancellation for events that are not completed
         if (event.getEventStatus() == EventStatus.COMPLETED) {
             throw new CustomException("Cannot cancel completed events", HttpStatus.BAD_REQUEST);
         }
@@ -191,38 +187,32 @@ public class EventService {
         event.setEventStatus(EventStatus.CANCELLED);
         event.setDeliveryStatus(DeliveryStatus.FAILED);
 
-        WebhookEvent updatedEvent = eventRepository.save(event);
-        return new EventResponse(updatedEvent);
+        return new EventResponse(eventRepository.save(event));
     }
 
     /**
      * Get event statistics for a user.
+     * FIX: N+1 + bellekte sayma → 2 sabit sorgu, aggregate DB'de yapılıyor
      */
     @Transactional(readOnly = true)
     public EventStatistics getEventStatistics(Long userId) {
-        List<WebhookEndpoint> endpoints = endpointRepository.findByUserId(userId);
+        List<Long> endpointIds = endpointRepository.findByUserId(userId).stream()
+                .map(WebhookEndpoint::getId)
+                .collect(Collectors.toList());
 
-        long totalEvents = 0;
-        long completedEvents = 0;
-        long failedEvents = 0;
-        long pendingEvents = 0;
+        if (endpointIds.isEmpty()) return new EventStatistics(0, 0, 0, 0);
 
-        for (WebhookEndpoint endpoint : endpoints) {
-            List<WebhookEvent> events = eventRepository.findByEndpointId(endpoint.getId());
-            totalEvents += events.size();
-            completedEvents += events.stream()
-                    .filter(e -> e.getEventStatus() == EventStatus.COMPLETED)
-                    .count();
-            failedEvents += events.stream()
-                    .filter(e -> e.getEventStatus() == EventStatus.FAILED)
-                    .count();
-            pendingEvents += events.stream()
-                    .filter(e -> e.getEventStatus() == EventStatus.CREATED ||
-                            e.getEventStatus() == EventStatus.PROCESSING)
-                    .count();
+        List<Object[]> rows = eventRepository.findStatsByEndpointIds(endpointIds);
+
+        long total = 0, completed = 0, failed = 0, pending = 0;
+        for (Object[] row : rows) {
+            total     += ((Number) row[1]).longValue();
+            completed += ((Number) row[2]).longValue();
+            failed    += ((Number) row[3]).longValue();
+            pending   += ((Number) row[4]).longValue();
         }
 
-        return new EventStatistics(totalEvents, completedEvents, failedEvents, pendingEvents);
+        return new EventStatistics(total, completed, failed, pending);
     }
 
     /**

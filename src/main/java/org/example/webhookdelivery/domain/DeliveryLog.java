@@ -1,12 +1,9 @@
 package org.example.webhookdelivery.domain;
 
 import jakarta.persistence.*;
+import org.example.webhookdelivery.domain.enums.DeliveryStatus;
 import java.time.LocalDateTime;
 
-/**
- * Represents a delivery attempt log entry for webhook events.
- * Tracks every delivery attempt with response details.
- */
 @Entity
 @Table(name = "delivery_logs")
 public class DeliveryLog {
@@ -22,8 +19,9 @@ public class DeliveryLog {
     @Column(name = "attempt_number", nullable = false)
     private int attemptNumber = 1;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private DeliveryStatus status;
 
     @Column(name = "http_status_code")
     private Integer httpStatusCode;
@@ -53,14 +51,14 @@ public class DeliveryLog {
     // Constructors
     public DeliveryLog() {}
 
-    public DeliveryLog(WebhookEvent event, int attemptNumber, String status) {
+    public DeliveryLog(WebhookEvent event, int attemptNumber, DeliveryStatus status) {
         this.event = event;
         this.attemptNumber = attemptNumber;
         this.status = status;
         this.requestTimestamp = LocalDateTime.now();
     }
 
-    // Builder pattern for easier construction
+    // Builder
     public static DeliveryLogBuilder builder() {
         return new DeliveryLogBuilder();
     }
@@ -82,7 +80,7 @@ public class DeliveryLog {
             return this;
         }
 
-        public DeliveryLogBuilder status(String status) {
+        public DeliveryLogBuilder status(DeliveryStatus status) {
             log.status = status;
             return this;
         }
@@ -123,83 +121,33 @@ public class DeliveryLog {
     }
 
     // Getters & Setters
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public WebhookEvent getEvent() { return event; }
+    public void setEvent(WebhookEvent event) { this.event = event; }
 
-    public WebhookEvent getEvent() {
-        return event;
-    }
+    public int getAttemptNumber() { return attemptNumber; }
+    public void setAttemptNumber(int attemptNumber) { this.attemptNumber = attemptNumber; }
 
-    public void setEvent(WebhookEvent event) {
-        this.event = event;
-    }
+    public DeliveryStatus getStatus() { return status; }
+    public void setStatus(DeliveryStatus status) { this.status = status; }
 
-    public int getAttemptNumber() {
-        return attemptNumber;
-    }
+    public Integer getHttpStatusCode() { return httpStatusCode; }
+    public void setHttpStatusCode(Integer httpStatusCode) { this.httpStatusCode = httpStatusCode; }
 
-    public void setAttemptNumber(int attemptNumber) {
-        this.attemptNumber = attemptNumber;
-    }
+    public String getResponseBody() { return responseBody; }
+    public void setResponseBody(String responseBody) { this.responseBody = responseBody; }
 
-    public String getStatus() {
-        return status;
-    }
+    public String getErrorMessage() { return errorMessage; }
+    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    public LocalDateTime getRequestTimestamp() { return requestTimestamp; }
+    public void setRequestTimestamp(LocalDateTime requestTimestamp) { this.requestTimestamp = requestTimestamp; }
 
-    public Integer getHttpStatusCode() {
-        return httpStatusCode;
-    }
+    public LocalDateTime getResponseTimestamp() { return responseTimestamp; }
+    public void setResponseTimestamp(LocalDateTime responseTimestamp) { this.responseTimestamp = responseTimestamp; }
 
-    public void setHttpStatusCode(Integer httpStatusCode) {
-        this.httpStatusCode = httpStatusCode;
-    }
-
-    public String getResponseBody() {
-        return responseBody;
-    }
-
-    public void setResponseBody(String responseBody) {
-        this.responseBody = responseBody;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-
-    public LocalDateTime getRequestTimestamp() {
-        return requestTimestamp;
-    }
-
-    public void setRequestTimestamp(LocalDateTime requestTimestamp) {
-        this.requestTimestamp = requestTimestamp;
-    }
-
-    public LocalDateTime getResponseTimestamp() {
-        return responseTimestamp;
-    }
-
-    public void setResponseTimestamp(LocalDateTime responseTimestamp) {
-        this.responseTimestamp = responseTimestamp;
-    }
-
-    public Long getDurationMs() {
-        return durationMs;
-    }
-
-    public void setDurationMs(Long durationMs) {
-        this.durationMs = durationMs;
-    }
+    public Long getDurationMs() { return durationMs; }
+    public void setDurationMs(Long durationMs) { this.durationMs = durationMs; }
 }

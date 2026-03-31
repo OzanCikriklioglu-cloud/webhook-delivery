@@ -47,7 +47,7 @@ webhook:
 logging:
   level:
     root: INFO
-    com.webhookdelivery: DEBUG
+    org.example.webhookdelivery: DEBUG
     org.springframework.security: INFO
 
 server:

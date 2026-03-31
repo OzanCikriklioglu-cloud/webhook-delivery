@@ -1,6 +1,7 @@
 package org.example.webhookdelivery.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -8,7 +9,7 @@ import jakarta.validation.constraints.Size;
  */
 public class CreateEventRequest {
 
-    @NotBlank(message = "Endpoint ID is required")
+    @NotNull(message = "Endpoint ID is required")
     private Long endpointId;
 
     @NotBlank(message = "Event type is required")

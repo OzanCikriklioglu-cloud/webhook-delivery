@@ -28,7 +28,7 @@ public class DeliveryLogResponse {
         this.eventId = log.getEvent().getId();
         this.eventIdString = log.getEvent().getEventId();
         this.attemptNumber = log.getAttemptNumber();
-        this.status = log.getStatus();
+        this.status = log.getStatus().name();
         this.httpStatusCode = log.getHttpStatusCode();
         this.responseBody = log.getResponseBody();
         this.errorMessage = log.getErrorMessage();
