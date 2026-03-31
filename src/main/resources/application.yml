@@ -1,4 +1,7 @@
 spring:
+  application:
+    name: webhook-delivery
+
   config:
     import: optional:file:.env.properties
 
@@ -15,9 +18,11 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
 
   flyway:
     enabled: true
+    baseline-on-migrate: true
     locations: classpath:db/migration
 
   rabbitmq:
@@ -29,6 +34,21 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000
+
+webhook:
+  delivery:
+    timeout-seconds: 30
+    max-retries: 3
+    retry-delays:
+      - 60000    # 1 minute
+      - 300000   # 5 minutes
+      - 1800000  # 30 minutes
+
+logging:
+  level:
+    root: INFO
+    com.webhookdelivery: DEBUG
+    org.springframework.security: INFO
 
 server:
   port: 8080

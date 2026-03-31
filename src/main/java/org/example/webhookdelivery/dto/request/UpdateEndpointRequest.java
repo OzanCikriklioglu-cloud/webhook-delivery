@@ -1,29 +1,23 @@
 package org.example.webhookdelivery.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * Request DTO for creating a new webhook endpoint.
+ * Request DTO for updating an existing webhook endpoint.
  */
-public class CreateEndpointRequest {
+public class UpdateEndpointRequest {
 
-    @NotBlank(message = "Endpoint name is required")
     @Size(min = 1, max = 255, message = "Name must be between 1 and 255 characters")
     private String name;
 
-    @NotBlank(message = "URL is required")
     @Pattern(regexp = "^https?://.*", message = "URL must start with http:// or https://")
     @Size(max = 2048, message = "URL must not exceed 2048 characters")
     private String url;
 
-    public CreateEndpointRequest() {}
+    private Boolean isActive;
 
-    public CreateEndpointRequest(String name, String url) {
-        this.name = name;
-        this.url = url;
-    }
+    public UpdateEndpointRequest() {}
 
     public String getName() {
         return name;
@@ -39,5 +33,13 @@ public class CreateEndpointRequest {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 }
