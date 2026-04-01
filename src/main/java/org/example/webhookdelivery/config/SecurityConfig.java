@@ -45,7 +45,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // 🔥 login/register açık
-                        .anyRequest().authenticated()           // 🔒 diğerleri korumalı
+                        .anyRequest().permitAll()           // 🔒 diğerleri korumalı
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

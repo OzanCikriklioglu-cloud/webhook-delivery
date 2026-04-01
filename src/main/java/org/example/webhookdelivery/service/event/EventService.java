@@ -9,6 +9,7 @@ import org.example.webhookdelivery.dto.request.RetryEventRequest;
 import org.example.webhookdelivery.dto.response.DeliveryLogResponse;
 import org.example.webhookdelivery.dto.response.EventResponse;
 import org.example.webhookdelivery.exception.CustomException;
+import org.example.webhookdelivery.messaging.publisher.EventPublisher;
 import org.example.webhookdelivery.repository.DeliveryLogRepository;
 import org.example.webhookdelivery.repository.WebhookEndpointRepository;
 import org.example.webhookdelivery.repository.WebhookEventRepository;
@@ -29,17 +30,20 @@ public class EventService {
     private final WebhookEventRepository eventRepository;
     private final WebhookEndpointRepository endpointRepository;
     private final DeliveryLogRepository deliveryLogRepository;
+    private final EventPublisher eventPublisher;
 
     public EventService(WebhookEventRepository eventRepository,
                         WebhookEndpointRepository endpointRepository,
-                        DeliveryLogRepository deliveryLogRepository) {
+                        DeliveryLogRepository deliveryLogRepository,
+                        EventPublisher eventPublisher) {
         this.eventRepository = eventRepository;
         this.endpointRepository = endpointRepository;
         this.deliveryLogRepository = deliveryLogRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
-     * Create a new webhook event.
+     * Create a new webhook event and publish to queue for delivery.
      */
     public EventResponse createEvent(Long userId, CreateEventRequest request) {
         WebhookEndpoint endpoint = endpointRepository.findByIdAndUserId(request.getEndpointId(), userId)
@@ -55,12 +59,17 @@ public class EventService {
             event.setMaxRetries(request.getMaxRetries());
         }
 
-        return new EventResponse(eventRepository.save(event));
+        WebhookEvent savedEvent = eventRepository.save(event);
+
+        // Publish to RabbitMQ for immediate delivery
+        eventPublisher.publishForDelivery(savedEvent);
+
+        return new EventResponse(savedEvent);
     }
 
     /**
      * Get all events for a user.
-     * FIX: N+1 → 2 sabit sorgu (endpointIds + findByEndpointIdIn)
+     * FIX: N+1 -> 2 sabit sorgu (endpointIds + findByEndpointIdIn)
      */
     @Transactional(readOnly = true)
     public List<EventResponse> getUserEvents(Long userId) {
@@ -90,7 +99,7 @@ public class EventService {
 
     /**
      * Get a specific event by ID.
-     * FIX: findByIdWithEndpoint → JOIN FETCH, tek sorgu
+     * FIX: findByIdWithEndpoint -> JOIN FETCH, tek sorgu
      */
     @Transactional(readOnly = true)
     public EventResponse getEvent(Long userId, Long eventId) {
@@ -106,7 +115,7 @@ public class EventService {
 
     /**
      * Get a specific event by event ID (UUID).
-     * FIX: findByEventId artık JOIN FETCH içeriyor, tek sorgu
+     * FIX: findByEventId artik JOIN FETCH iceriyor, tek sorgu
      */
     @Transactional(readOnly = true)
     public EventResponse getEventByEventId(Long userId, String eventId) {
@@ -122,7 +131,7 @@ public class EventService {
 
     /**
      * Get delivery logs for an event.
-     * FIX: findById → findByIdWithEndpoint, lazy load ortadan kalktı
+     * FIX: findById -> findByIdWithEndpoint, lazy load ortadan kalkti
      */
     @Transactional(readOnly = true)
     public List<DeliveryLogResponse> getEventDeliveryLogs(Long userId, Long eventId) {
@@ -140,7 +149,7 @@ public class EventService {
 
     /**
      * Retry a failed event.
-     * FIX: findById → findByIdWithEndpoint, lazy load ortadan kalktı
+     * FIX: findById -> findByIdWithEndpoint, lazy load ortadan kalkti
      */
     public EventResponse retryEvent(Long userId, Long eventId, RetryEventRequest request) {
         WebhookEvent event = eventRepository.findByIdWithEndpoint(eventId)
@@ -165,12 +174,17 @@ public class EventService {
         event.setNextRetryAt(null);
         event.setLastDeliveryAt(null);
 
-        return new EventResponse(eventRepository.save(event));
+        WebhookEvent savedEvent = eventRepository.save(event);
+
+        // Publish to RabbitMQ for immediate delivery
+        eventPublisher.publishForDelivery(savedEvent);
+
+        return new EventResponse(savedEvent);
     }
 
     /**
      * Cancel an event.
-     * FIX: findById → findByIdWithEndpoint, lazy load ortadan kalktı
+     * FIX: findById -> findByIdWithEndpoint, lazy load ortadan kalkti
      */
     public EventResponse cancelEvent(Long userId, Long eventId) {
         WebhookEvent event = eventRepository.findByIdWithEndpoint(eventId)
@@ -192,7 +206,7 @@ public class EventService {
 
     /**
      * Get event statistics for a user.
-     * FIX: N+1 + bellekte sayma → 2 sabit sorgu, aggregate DB'de yapılıyor
+     * FIX: N+1 + bellekte sayma -> 2 sabit sorgu, aggregate DB'de yapiliyor
      */
     @Transactional(readOnly = true)
     public EventStatistics getEventStatistics(Long userId) {
