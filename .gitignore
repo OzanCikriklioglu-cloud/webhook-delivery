@@ -3,6 +3,7 @@ HELP.md
 .env.properties
 claudeinstruction.txt
 img.png
+testin.txt
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
