@@ -1,6 +1,6 @@
 # WebhookDelivery
 
-A production-grade webhook delivery engine built with Spring Boot. Inspired by how Stripe and GitHub reliably deliver HTTP events to third-party systems.
+A production-grade webhook delivery engine built with Spring Boot.
 
 [![CI](https://github.com/OzanCikriklioglu-cloud/webhook-delivery/actions/workflows/ci.yml/badge.svg)](https://github.com/OzanCikriklioglu-cloud/webhook-delivery/actions/workflows/ci.yml)
 
