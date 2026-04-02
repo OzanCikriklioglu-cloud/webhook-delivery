@@ -1,3 +1,5 @@
+# Ozan Cikriklioglu
+
 # WebhookDelivery
 
 Reliable webhook delivery system with retry, exponential backoff, and dead-letter queues, built with Spring Boot and RabbitMQ.
@@ -224,3 +226,7 @@ You will see these queues:
 21 tests covering `RetryPolicy` (delay calculation, backoff logic) and `DeliveryService` (success, HTTP errors, inactive endpoint, timeout, unreachable URL).
 
 ---
+
+
+## Author
+Ozan Cikriklioglu
