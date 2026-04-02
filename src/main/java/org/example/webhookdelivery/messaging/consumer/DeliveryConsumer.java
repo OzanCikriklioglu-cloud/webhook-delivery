@@ -99,7 +99,7 @@ public class DeliveryConsumer {
             eventRepository.save(event);
 
             createDeliveryLog(event, result, DeliveryStatus.RETRYING);
-            eventPublisher.publishForRetry(event);
+            eventPublisher.publishForRetry(event, event.getRetryCount());
 
             log.info("Event {} scheduled for retry #{} in {} minutes",
                     event.getEventId(), event.getRetryCount(), retryDelayMinutes);
@@ -129,7 +129,7 @@ public class DeliveryConsumer {
                 freshEvent.setNextRetryAt(LocalDateTime.now().plusMinutes(retryDelayMinutes));
                 eventRepository.save(freshEvent);
 
-                eventPublisher.publishForRetry(freshEvent);
+                eventPublisher.publishForRetry(freshEvent, freshEvent.getRetryCount());
             } else {
                 freshEvent.setEventStatus(EventStatus.FAILED);
                 freshEvent.setDeliveryStatus(DeliveryStatus.FAILED);

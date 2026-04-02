@@ -17,16 +17,22 @@ public class RabbitMQConfig {
 
     // Queue names
     public static final String DELIVERY_QUEUE = "webhook.delivery.queue";
-    public static final String RETRY_QUEUE = "webhook.retry.queue";
+    public static final String RETRY_1M_QUEUE  = "webhook.retry.1m.queue";
+    public static final String RETRY_5M_QUEUE  = "webhook.retry.5m.queue";
+    public static final String RETRY_30M_QUEUE = "webhook.retry.30m.queue";
     public static final String DLQ_QUEUE = "webhook.dlq.queue";
 
     // Routing keys
-    public static final String DELIVERY_ROUTING_KEY = "webhook.deliver";
-    public static final String RETRY_ROUTING_KEY = "webhook.retry";
-    public static final String DLQ_ROUTING_KEY = "webhook.dlq";
+    public static final String DELIVERY_ROUTING_KEY  = "webhook.deliver";
+    public static final String RETRY_1M_ROUTING_KEY  = "webhook.retry.1m";
+    public static final String RETRY_5M_ROUTING_KEY  = "webhook.retry.5m";
+    public static final String RETRY_30M_ROUTING_KEY = "webhook.retry.30m";
+    public static final String DLQ_ROUTING_KEY        = "webhook.dlq";
 
-    // Message TTL for retry queue (1 minute)
-    public static final int RETRY_TTL = 60000;
+    // TTLs per retry tier (ms)
+    public static final int RETRY_1M_TTL  = 60_000;
+    public static final int RETRY_5M_TTL  = 300_000;
+    public static final int RETRY_30M_TTL = 1_800_000;
 
     // ==================== Main Exchange ====================
     @Bean
@@ -49,13 +55,31 @@ public class RabbitMQConfig {
                 .build();
     }
 
-    // ==================== Retry Queue (with TTL, redirects back to main queue) ====================
+    // ==================== Retry Queues (each tier has its own TTL) ====================
     @Bean
-    public Queue retryQueue() {
-        return QueueBuilder.durable(RETRY_QUEUE)
+    public Queue retry1mQueue() {
+        return QueueBuilder.durable(RETRY_1M_QUEUE)
                 .withArgument("x-dead-letter-exchange", WEBHOOK_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", DELIVERY_ROUTING_KEY)
-                .withArgument("x-message-ttl", RETRY_TTL)
+                .withArgument("x-message-ttl", RETRY_1M_TTL)
+                .build();
+    }
+
+    @Bean
+    public Queue retry5mQueue() {
+        return QueueBuilder.durable(RETRY_5M_QUEUE)
+                .withArgument("x-dead-letter-exchange", WEBHOOK_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", DELIVERY_ROUTING_KEY)
+                .withArgument("x-message-ttl", RETRY_5M_TTL)
+                .build();
+    }
+
+    @Bean
+    public Queue retry30mQueue() {
+        return QueueBuilder.durable(RETRY_30M_QUEUE)
+                .withArgument("x-dead-letter-exchange", WEBHOOK_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", DELIVERY_ROUTING_KEY)
+                .withArgument("x-message-ttl", RETRY_30M_TTL)
                 .build();
     }
 
@@ -74,10 +98,24 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding retryBinding() {
-        return BindingBuilder.bind(retryQueue())
+    public Binding retry1mBinding() {
+        return BindingBuilder.bind(retry1mQueue())
                 .to(webhookExchange())
-                .with(RETRY_ROUTING_KEY);
+                .with(RETRY_1M_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding retry5mBinding() {
+        return BindingBuilder.bind(retry5mQueue())
+                .to(webhookExchange())
+                .with(RETRY_5M_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding retry30mBinding() {
+        return BindingBuilder.bind(retry30mQueue())
+                .to(webhookExchange())
+                .with(RETRY_30M_ROUTING_KEY);
     }
 
     @Bean

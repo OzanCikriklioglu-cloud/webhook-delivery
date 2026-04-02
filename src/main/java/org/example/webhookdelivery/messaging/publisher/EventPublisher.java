@@ -32,17 +32,22 @@ public class EventPublisher {
     }
 
     /**
-     * Publish an event to the retry queue for delayed retry processing.
+     * Publish an event to the appropriate retry queue based on retry count.
+     * Retry 1 → 1m queue, Retry 2 → 5m queue, Retry 3+ → 30m queue.
      */
-    public void publishForRetry(WebhookEvent event) {
-        log.info("Publishing event {} to retry queue (attempt {})",
-                event.getEventId(), event.getRetryCount());
+    public void publishForRetry(WebhookEvent event, int retryCount) {
+        String routingKey = switch (retryCount) {
+            case 1  -> RabbitMQConfig.RETRY_1M_ROUTING_KEY;
+            case 2  -> RabbitMQConfig.RETRY_5M_ROUTING_KEY;
+            default -> RabbitMQConfig.RETRY_30M_ROUTING_KEY;
+        };
+        log.info("Publishing event {} to retry queue (attempt {}, delay routing key: {})",
+                event.getEventId(), retryCount, routingKey);
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.WEBHOOK_EXCHANGE,
-                RabbitMQConfig.RETRY_ROUTING_KEY,
+                routingKey,
                 event
         );
-        log.debug("Event {} published to retry queue", event.getEventId());
     }
 
     /**
