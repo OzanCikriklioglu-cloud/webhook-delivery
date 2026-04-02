@@ -1,6 +1,6 @@
 # WebhookDelivery
 
-A production-grade webhook delivery engine built with Spring Boot.
+Reliable webhook delivery system with retry, exponential backoff, and dead-letter queues, built with Spring Boot and RabbitMQ.
 
 [![CI](https://github.com/OzanCikriklioglu-cloud/webhook-delivery/actions/workflows/ci.yml/badge.svg)](https://github.com/OzanCikriklioglu-cloud/webhook-delivery/actions/workflows/ci.yml)
 
