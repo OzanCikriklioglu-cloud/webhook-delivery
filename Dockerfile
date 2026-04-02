@@ -14,6 +14,13 @@ RUN ./mvnw package -DskipTests
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+
 COPY --from=build /app/target/*.jar app.jar
+
+RUN chown appuser:appgroup app.jar
+USER appuser
+
+EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

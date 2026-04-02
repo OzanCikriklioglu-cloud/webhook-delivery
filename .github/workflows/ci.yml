@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: webhookdb
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: root
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3
+        env:
+          RABBITMQ_DEFAULT_USER: user
+          RABBITMQ_DEFAULT_PASS: pass
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run tests
+        env:
+          DB_USERNAME: postgres
+          DB_PASSWORD: root
+          JWT_SECRET: ci-test-secret-key-that-is-at-least-32-characters-long
+          SPRING_RABBITMQ_HOST: localhost
+          SPRING_RABBITMQ_USERNAME: user
+          SPRING_RABBITMQ_PASSWORD: pass
+        run: ./mvnw test
+
+      - name: Build JAR
+        env:
+          DB_USERNAME: postgres
+          DB_PASSWORD: root
+          JWT_SECRET: ci-test-secret-key-that-is-at-least-32-characters-long
+          SPRING_RABBITMQ_HOST: localhost
+          SPRING_RABBITMQ_USERNAME: user
+          SPRING_RABBITMQ_PASSWORD: pass
+        run: ./mvnw package -DskipTests
