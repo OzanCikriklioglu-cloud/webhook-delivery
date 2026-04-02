@@ -9,8 +9,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 
 @Component
 public class WebhookHttpClient {
@@ -33,11 +37,13 @@ public class WebhookHttpClient {
         LocalDateTime requestTime = LocalDateTime.now();
 
         try {
+            String signature = computeHmacSignature(payload, secretKey);
+
             String response = webClient.post()
                     .uri(targetUrl)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .header("X-Webhook-Event", eventId)
-                    .header("X-Webhook-Signature", secretKey)
+                    .header("X-Webhook-Signature", signature)
                     .bodyValue(payload)
                     .retrieve()
                     .bodyToMono(String.class)
@@ -77,6 +83,23 @@ public class WebhookHttpClient {
                     responseTime,
                     durationMs
             );
+        }
+    }
+
+    /**
+     * Compute HMAC-SHA256 signature of the payload using the endpoint's secret key.
+     * Format: "sha256=<hex>" — same convention used by Stripe and GitHub webhooks.
+     *
+     * Receivers can verify by computing the same HMAC on their side and comparing.
+     */
+    private String computeHmacSignature(String payload, String secretKey) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+            return "sha256=" + HexFormat.of().formatHex(hash);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to compute HMAC-SHA256 signature", e);
         }
     }
 

@@ -49,3 +49,18 @@ logging:
 
 server:
   port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+info:
+  app:
+    name: Webhook Delivery
+    description: Production-grade async webhook delivery engine with retry and dead-letter queue
+    version: 1.0.0
