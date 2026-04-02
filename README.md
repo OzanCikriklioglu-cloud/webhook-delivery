@@ -224,7 +224,3 @@ You will see these queues:
 21 tests covering `RetryPolicy` (delay calculation, backoff logic) and `DeliveryService` (success, HTTP errors, inactive endpoint, timeout, unreachable URL).
 
 ---
-
-## Why I built this
-
-I built this project to understand how reliable event delivery systems work in production. Services like Stripe and GitHub solve this exact problem at scale — every webhook you receive from them goes through a system like this. This is my implementation of the same concept using Java and Spring Boot, built as part of my backend development journey.
