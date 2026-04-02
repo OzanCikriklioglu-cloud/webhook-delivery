@@ -1,6 +1,7 @@
 package org.example.webhookdelivery.repository;
 
 import org.example.webhookdelivery.domain.DeliveryLog;
+import org.example.webhookdelivery.domain.enums.DeliveryStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,5 +16,5 @@ public interface DeliveryLogRepository extends JpaRepository<DeliveryLog, Long> 
 
     long countByEventId(Long eventId);
 
-    List<DeliveryLog> findByStatus(String status);
+    List<DeliveryLog> findByStatus(DeliveryStatus status);
 }

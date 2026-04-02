@@ -1,5 +1,6 @@
 package org.example.webhookdelivery.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ public class WebhookEndpoint {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "endpoint", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WebhookEvent> events = new ArrayList<>();
 
