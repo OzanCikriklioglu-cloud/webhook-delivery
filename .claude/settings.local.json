@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git -C \"C:\\\\Users\\\\ozanc\\\\desktop\\\\projects\\\\webhook-delivery\" ls-files testin.txt claudeinstruction.txt)"
-    ]
-  }
-}
