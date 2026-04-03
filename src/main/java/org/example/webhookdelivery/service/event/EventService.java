@@ -53,12 +53,25 @@ public class EventService {
             throw new CustomException("Endpoint is not active", HttpStatus.BAD_REQUEST);
         }
 
+        if (request.getIdempotencyKey() != null) {
+            var existing = eventRepository.findByEndpointIdAndIdempotencyKey(
+                    request.getEndpointId(), request.getIdempotencyKey());
+            if (existing.isPresent()) {
+                return new EventResponse(existing.get());
+            }
+        }
+
         WebhookEvent event = new WebhookEvent(endpoint, request.getEventType(), request.getPayload());
+
+        if (request.getIdempotencyKey() != null) {
+            event.setIdempotencyKey(request.getIdempotencyKey());
+        }
 
         if (request.getMaxRetries() != null) {
             event.setMaxRetries(request.getMaxRetries());
         }
 
+        event.setDeliveryStatus(DeliveryStatus.QUEUED);
         WebhookEvent savedEvent = eventRepository.save(event);
 
         // Publish to RabbitMQ for immediate delivery
@@ -165,7 +178,7 @@ public class EventService {
 
         event.setRetryCount(0);
         event.setEventStatus(EventStatus.CREATED);
-        event.setDeliveryStatus(DeliveryStatus.PENDING);
+        event.setDeliveryStatus(DeliveryStatus.QUEUED);
 
         if (request.getMaxRetries() != null) {
             event.setMaxRetries(request.getMaxRetries());
@@ -199,7 +212,7 @@ public class EventService {
         }
 
         event.setEventStatus(EventStatus.CANCELLED);
-        event.setDeliveryStatus(DeliveryStatus.FAILED);
+        event.setDeliveryStatus(DeliveryStatus.CANCELLED);
 
         return new EventResponse(eventRepository.save(event));
     }

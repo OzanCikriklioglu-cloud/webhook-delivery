@@ -46,7 +46,7 @@ class DeliveryServiceTest {
         WebhookEvent event = buildEvent(activeEndpoint);
 
         when(httpClient.deliver(any(), any(), any(), any()))
-                .thenReturn(DeliveryResponse.success("OK", LocalDateTime.now(), 120L));
+                .thenReturn(DeliveryResponse.success("OK", 200, LocalDateTime.now(), 120L));
 
         DeliveryResult result = deliveryService.deliver(event);
 
@@ -141,7 +141,7 @@ class DeliveryServiceTest {
         WebhookEvent event = buildEvent(activeEndpoint);
 
         when(httpClient.deliver(any(), any(), any(), any()))
-                .thenReturn(DeliveryResponse.success("OK", LocalDateTime.now(), 350L));
+                .thenReturn(DeliveryResponse.success("OK", 200, LocalDateTime.now(), 350L));
 
         DeliveryResult result = deliveryService.deliver(event);
 

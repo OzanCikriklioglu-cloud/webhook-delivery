@@ -5,8 +5,11 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class RabbitMQConfig {
@@ -29,10 +32,9 @@ public class RabbitMQConfig {
     public static final String RETRY_30M_ROUTING_KEY = "webhook.retry.30m";
     public static final String DLQ_ROUTING_KEY        = "webhook.dlq";
 
-    // TTLs per retry tier (ms)
-    public static final int RETRY_1M_TTL  = 60_000;
-    public static final int RETRY_5M_TTL  = 300_000;
-    public static final int RETRY_30M_TTL = 1_800_000;
+    // TTLs read from application.yml: webhook.delivery.retry-delays
+    @Value("${webhook.delivery.retry-delays}")
+    private List<Long> retryDelays;
 
     // ==================== Main Exchange ====================
     @Bean
@@ -61,7 +63,7 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(RETRY_1M_QUEUE)
                 .withArgument("x-dead-letter-exchange", WEBHOOK_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", DELIVERY_ROUTING_KEY)
-                .withArgument("x-message-ttl", RETRY_1M_TTL)
+                .withArgument("x-message-ttl", retryDelays.get(0))
                 .build();
     }
 
@@ -70,7 +72,7 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(RETRY_5M_QUEUE)
                 .withArgument("x-dead-letter-exchange", WEBHOOK_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", DELIVERY_ROUTING_KEY)
-                .withArgument("x-message-ttl", RETRY_5M_TTL)
+                .withArgument("x-message-ttl", retryDelays.get(1))
                 .build();
     }
 
@@ -79,7 +81,7 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(RETRY_30M_QUEUE)
                 .withArgument("x-dead-letter-exchange", WEBHOOK_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", DELIVERY_ROUTING_KEY)
-                .withArgument("x-message-ttl", RETRY_30M_TTL)
+                .withArgument("x-message-ttl", retryDelays.get(2))
                 .build();
     }
 

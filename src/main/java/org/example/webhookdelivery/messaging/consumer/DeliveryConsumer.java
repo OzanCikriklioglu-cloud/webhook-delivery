@@ -10,6 +10,8 @@ import org.example.webhookdelivery.repository.DeliveryLogRepository;
 import org.example.webhookdelivery.repository.WebhookEventRepository;
 import org.example.webhookdelivery.service.delivery.DeliveryService;
 import org.example.webhookdelivery.service.delivery.RetryPolicy;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -29,16 +31,31 @@ public class DeliveryConsumer {
     private final EventPublisher eventPublisher;
     private final RetryPolicy retryPolicy;
 
+    private final Counter deliverySuccessCounter;
+    private final Counter deliveryFailureCounter;
+    private final Counter deliveryRetryCounter;
+
     public DeliveryConsumer(DeliveryService deliveryService,
                             WebhookEventRepository eventRepository,
                             DeliveryLogRepository deliveryLogRepository,
                             EventPublisher eventPublisher,
-                            RetryPolicy retryPolicy) {
+                            RetryPolicy retryPolicy,
+                            MeterRegistry meterRegistry) {
         this.deliveryService = deliveryService;
         this.eventRepository = eventRepository;
         this.deliveryLogRepository = deliveryLogRepository;
         this.eventPublisher = eventPublisher;
         this.retryPolicy = retryPolicy;
+
+        this.deliverySuccessCounter = Counter.builder("webhook.delivery.success")
+                .description("Number of webhooks successfully delivered")
+                .register(meterRegistry);
+        this.deliveryFailureCounter = Counter.builder("webhook.delivery.failure")
+                .description("Number of webhooks that exhausted all retries and failed")
+                .register(meterRegistry);
+        this.deliveryRetryCounter = Counter.builder("webhook.delivery.retry")
+                .description("Number of webhook delivery retries scheduled")
+                .register(meterRegistry);
     }
 
     /**
@@ -59,6 +76,7 @@ public class DeliveryConsumer {
                 return;
             }
 
+            freshEvent.setEventStatus(EventStatus.PROCESSING);
             freshEvent.setDeliveryStatus(DeliveryStatus.DELIVERING);
             freshEvent.setLastDeliveryAt(LocalDateTime.now());
             eventRepository.save(freshEvent);
@@ -85,6 +103,7 @@ public class DeliveryConsumer {
         eventRepository.save(event);
 
         createDeliveryLog(event, result, DeliveryStatus.DELIVERED);
+        deliverySuccessCounter.increment();
     }
 
     private void handleFailure(WebhookEvent event, DeliveryResult result) {
@@ -100,6 +119,7 @@ public class DeliveryConsumer {
 
             createDeliveryLog(event, result, DeliveryStatus.RETRYING);
             eventPublisher.publishForRetry(event, event.getRetryCount());
+            deliveryRetryCounter.increment();
 
             log.info("Event {} scheduled for retry #{} in {} minutes",
                     event.getEventId(), event.getRetryCount(), retryDelayMinutes);
@@ -110,6 +130,7 @@ public class DeliveryConsumer {
 
             createDeliveryLog(event, result, DeliveryStatus.FAILED);
             eventPublisher.publishToDLQ(event);
+            deliveryFailureCounter.increment();
 
             log.warn("Event {} moved to DLQ after {} attempts",
                     event.getEventId(), event.getRetryCount());

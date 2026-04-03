@@ -12,23 +12,23 @@ import java.util.Date;
 public class JwtUtil {
 
     private final Key key;
+    private final long expirationMs;
 
-    // secret application.yml'den geliyor
-    public JwtUtil(@Value("${jwt.secret}") String secret) {
+    public JwtUtil(@Value("${jwt.secret}") String secret,
+                   @Value("${jwt.expiration}") long expirationMs) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        this.expirationMs = expirationMs;
     }
 
-    // 🔥 TOKEN ÜRET
     public String generateToken(String email) {
         return Jwts.builder()
-                .setSubject(email) // token içine email koyuyoruz
+                .setSubject(email)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 saat
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // 🔥 TOKEN'DAN EMAIL AL
     public String extractEmail(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -38,7 +38,6 @@ public class JwtUtil {
                 .getSubject();
     }
 
-    // 🔥 TOKEN GEÇERLİ Mİ?
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()

@@ -22,10 +22,19 @@ public class EndpointResponse {
         this.id = endpoint.getId();
         this.name = endpoint.getName();
         this.url = endpoint.getUrl();
-        this.secretKey = endpoint.getSecretKey();
+        this.secretKey = null; // not exposed on standard GET
         this.isActive = endpoint.isActive();
         this.createdAt = endpoint.getCreatedAt();
         this.updatedAt = endpoint.getUpdatedAt();
+    }
+
+    /**
+     * Use only when returning the secret key is intentional (endpoint creation or key regeneration).
+     */
+    public static EndpointResponse withSecret(WebhookEndpoint endpoint) {
+        EndpointResponse response = new EndpointResponse(endpoint);
+        response.secretKey = endpoint.getSecretKey();
+        return response;
     }
 
     // Builder pattern

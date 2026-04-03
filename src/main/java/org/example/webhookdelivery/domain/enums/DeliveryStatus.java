@@ -8,5 +8,6 @@ public enum DeliveryStatus {
     DELIVERING,    // Currently attempting delivery
     DELIVERED,     // Successfully delivered (HTTP 2xx)
     FAILED,        // Delivery failed after all retries
-    RETRYING       // Delivery failed, scheduled for retry
+    RETRYING,      // Delivery failed, scheduled for retry
+    CANCELLED      // Event cancelled by user
 }

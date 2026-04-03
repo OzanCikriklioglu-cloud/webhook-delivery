@@ -6,7 +6,9 @@ import org.example.webhookdelivery.dto.request.RetryEventRequest;
 import org.example.webhookdelivery.dto.response.DeliveryLogResponse;
 import org.example.webhookdelivery.dto.response.EventResponse;
 import org.example.webhookdelivery.repository.UserRepository;
+import org.example.webhookdelivery.exception.CustomException;
 import org.example.webhookdelivery.service.event.EventService;
+import org.example.webhookdelivery.service.ratelimit.RateLimiterService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,10 +28,13 @@ public class EventController {
 
     private final EventService eventService;
     private final UserRepository userRepository;
+    private final RateLimiterService rateLimiterService;
 
-    public EventController(EventService eventService, UserRepository userRepository) {
+    public EventController(EventService eventService, UserRepository userRepository,
+                           RateLimiterService rateLimiterService) {
         this.eventService = eventService;
         this.userRepository = userRepository;
+        this.rateLimiterService = rateLimiterService;
     }
 
     /**
@@ -41,6 +46,11 @@ public class EventController {
             @Valid @RequestBody CreateEventRequest request) {
 
         Long userId = getUserId(userDetails);
+
+        if (!rateLimiterService.tryConsume(userId)) {
+            throw new CustomException("Rate limit exceeded. Try again later.", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
         EventResponse response = eventService.createEvent(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

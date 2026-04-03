@@ -3,6 +3,7 @@ package org.example.webhookdelivery.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 
 /**
  * Request DTO for creating a new webhook event.
@@ -20,6 +21,9 @@ public class CreateEventRequest {
     private String payload;
 
     private Integer maxRetries;
+
+    @Size(max = 255, message = "Idempotency key must not exceed 255 characters")
+    private String idempotencyKey;
 
     public CreateEventRequest() {}
 
@@ -59,5 +63,13 @@ public class CreateEventRequest {
 
     public void setMaxRetries(Integer maxRetries) {
         this.maxRetries = maxRetries;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
     }
 }

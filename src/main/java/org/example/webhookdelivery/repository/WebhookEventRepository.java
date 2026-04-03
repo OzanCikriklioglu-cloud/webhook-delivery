@@ -33,6 +33,10 @@ public interface WebhookEventRepository extends JpaRepository<WebhookEvent, Long
     @Query("SELECT e FROM WebhookEvent e WHERE e.deliveryStatus = :status AND e.lastDeliveryAt < :threshold")
     List<WebhookEvent> findStuckEvents(@Param("threshold") LocalDateTime threshold, @Param("status") DeliveryStatus status);
 
+    // ── Idempotency: endpoint + key ile mevcut event'i bul ───────────────────
+    @Query("SELECT e FROM WebhookEvent e JOIN FETCH e.endpoint WHERE e.endpoint.id = :endpointId AND e.idempotencyKey = :idempotencyKey")
+    Optional<WebhookEvent> findByEndpointIdAndIdempotencyKey(@Param("endpointId") Long endpointId, @Param("idempotencyKey") String idempotencyKey);
+
     // ── N+1 Fix 1: eventId ile tek sorguda endpoint'i de çek ─────────────────
     // Kullanım: getEventByEventId(), (eski: findByEventId + lazy load)
     @Query("SELECT e FROM WebhookEvent e JOIN FETCH e.endpoint WHERE e.eventId = :eventId")

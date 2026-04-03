@@ -32,24 +32,20 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 🔥 Authorization header al
         final String authHeader = request.getHeader("Authorization");
 
         String token = null;
         String email = null;
 
-        // 🔥 Bearer token kontrolü
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             email = jwtUtil.extractEmail(token);
         }
 
-        // 🔥 Eğer email varsa ve auth yapılmamışsa
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-            // 🔥 token valid mi?
             if (jwtUtil.validateToken(token)) {
 
                 UsernamePasswordAuthenticationToken authToken =
@@ -63,7 +59,6 @@ public class JwtFilter extends OncePerRequestFilter {
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
 
-                // 🔥 user'ı sisteme set et
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }

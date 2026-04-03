@@ -59,7 +59,7 @@ public class EndpointService {
         );
 
         WebhookEndpoint savedEndpoint = endpointRepository.save(endpoint);
-        return new EndpointResponse(savedEndpoint);
+        return EndpointResponse.withSecret(savedEndpoint);
     }
 
     /**
@@ -139,7 +139,7 @@ public class EndpointService {
 
         endpoint.setSecretKey(generateSecretKey());
         WebhookEndpoint updatedEndpoint = endpointRepository.save(endpoint);
-        return new EndpointResponse(updatedEndpoint);
+        return EndpointResponse.withSecret(updatedEndpoint);
     }
 
     /**

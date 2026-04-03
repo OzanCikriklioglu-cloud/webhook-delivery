@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
@@ -39,23 +40,26 @@ public class WebhookHttpClient {
         try {
             String signature = computeHmacSignature(payload, secretKey);
 
-            String response = webClient.post()
+            ResponseEntity<String> responseEntity = webClient.post()
                     .uri(targetUrl)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .header("X-Webhook-Event", eventId)
                     .header("X-Webhook-Signature", signature)
                     .bodyValue(payload)
                     .retrieve()
-                    .bodyToMono(String.class)
+                    .toEntity(String.class)
                     .timeout(Duration.ofSeconds(timeoutSeconds))
                     .block();
 
             LocalDateTime responseTime = LocalDateTime.now();
             long durationMs = Duration.between(requestTime, responseTime).toMillis();
 
-            log.info("Webhook delivered to {} in {}ms", targetUrl, durationMs);
+            int statusCode = responseEntity != null ? responseEntity.getStatusCode().value() : 200;
+            String responseBody = responseEntity != null ? responseEntity.getBody() : null;
 
-            return DeliveryResponse.success(response, responseTime, durationMs);
+            log.info("Webhook delivered to {} — HTTP {} in {}ms", targetUrl, statusCode, durationMs);
+
+            return DeliveryResponse.success(responseBody, statusCode, responseTime, durationMs);
 
         } catch (WebClientResponseException e) {
             LocalDateTime responseTime = LocalDateTime.now();
@@ -121,8 +125,8 @@ public class WebhookHttpClient {
             LocalDateTime responseTimestamp,
             Long durationMs
     ) {
-        public static DeliveryResponse success(String body, LocalDateTime time, Long duration) {
-            return new DeliveryResponse(true, body, 200, null, time, duration);
+        public static DeliveryResponse success(String body, int statusCode, LocalDateTime time, Long duration) {
+            return new DeliveryResponse(true, body, statusCode, null, time, duration);
         }
 
         public static DeliveryResponse failure(String error, Integer status,

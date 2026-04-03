@@ -4,8 +4,10 @@ import org.example.webhookdelivery.domain.User;
 import org.example.webhookdelivery.dto.request.LoginRequest;
 import org.example.webhookdelivery.dto.request.RegisterRequest;
 import org.example.webhookdelivery.dto.response.AuthResponse;
+import org.example.webhookdelivery.exception.CustomException;
 import org.example.webhookdelivery.repository.UserRepository;
 import org.example.webhookdelivery.security.JwtUtil;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,42 +26,24 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
     }
 
-    // 🔥 REGISTER
     public void register(RegisterRequest request) {
-
-        // email already exists mi?
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already in use");
+            throw new CustomException("Email already in use", HttpStatus.CONFLICT);
         }
 
-        // password hash
         String hashedPassword = passwordEncoder.encode(request.getPassword());
-
-        // user oluştur
-        User user = new User(
-                request.getEmail(),
-                hashedPassword
-        );
-
-        // save
-        userRepository.save(user);
+        userRepository.save(new User(request.getEmail(), hashedPassword));
     }
 
-    // 🔥 LOGIN
     public AuthResponse login(LoginRequest request) {
-
-        // user bul
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException("Invalid credentials", HttpStatus.UNAUTHORIZED));
 
-        // password check
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid password");
+            throw new CustomException("Invalid credentials", HttpStatus.UNAUTHORIZED);
         }
 
-        // JWT üret
         String token = jwtUtil.generateToken(user.getEmail());
-
         return new AuthResponse(token);
     }
 }

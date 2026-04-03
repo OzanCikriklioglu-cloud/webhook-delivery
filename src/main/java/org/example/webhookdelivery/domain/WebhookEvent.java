@@ -50,6 +50,9 @@ public class WebhookEvent {
     @Column(name = "last_delivery_at")
     private LocalDateTime lastDeliveryAt;
 
+    @Column(name = "idempotency_key")
+    private String idempotencyKey;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -190,6 +193,14 @@ public class WebhookEvent {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
     }
 
     public boolean canRetry() {
