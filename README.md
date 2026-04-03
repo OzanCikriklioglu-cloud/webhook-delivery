@@ -37,10 +37,10 @@ Client
 │              RabbitMQ                   │
 │                                         │
 │  webhook.delivery.queue                 │
-│  webhook.retry.1m.queue  (TTL: 1 min)  │
-│  webhook.retry.5m.queue  (TTL: 5 min)  │
-│  webhook.retry.30m.queue (TTL: 30 min) │
-│  webhook.dlq.queue       (dead letter) │
+│  webhook.retry.1m.queue  (TTL: 1 min)   │
+│  webhook.retry.5m.queue  (TTL: 5 min)   │
+│  webhook.retry.30m.queue (TTL: 30 min)  │
+│  webhook.dlq.queue       (dead letter)  │
 └──────────────┬──────────────────────────┘
                │
                ▼
